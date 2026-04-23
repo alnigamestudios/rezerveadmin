@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezerve - Süper Admin Paneli</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- SweetAlert2 for bulletproof modals -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+        
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --secondary: #ec4899;
+            --bg: #030712;
+            --card-glass: rgba(17, 24, 39, 0.7);
+            color-scheme: dark;
+        }
+
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background: radial-gradient(circle at top right, #1e1b4b, #030712);
+            min-height: 100vh;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: var(--card-glass);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            padding: 48px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        input, textarea, select {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: white !important;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1.5rem center;
+            background-size: 1.5rem;
+            padding-right: 3.5rem !important;
+        }
+
+        select option, .swal2-select option {
+            color: #000 !important;
+            background-color: #fff !important;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 4px var(--primary-glow) !important;
+            background: rgba(255, 255, 255, 0.06) !important;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -6px var(--primary-glow);
+            filter: brightness(1.1);
+        }
+
+        .spinner { 
+            border: 3px solid rgba(255,255,255,0.1); 
+            border-radius: 50%; 
+            border-top-color: #fff; 
+            animation: spin 0.8s linear infinite; 
+            width: 22px; height: 22px; 
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .tab-btn { 
+            position: relative;
+            color: #64748b;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .tab-btn.active { 
+            color: #fff;
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 25%;
+            right: 25%;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 10px;
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* Modal fixes for scroll and size */
+        .modal-glass {
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-scroll-area {
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 8px; /* For the scrollbar spacing */
+        }
+        
+        @media (max-width: 768px) {
+            .glass-panel { border-radius: 16px; }
+            .login-card { padding: 32px 24px; }
+            .p-10 { padding: 24px; }
+            .h-24 { h-20; }
+        }
+
+        .card-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: all 0.4s;
+        }
+        .card-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        /* Ban button explicit interactivity */
+        .js-ban-user, .js-ban-device {
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            user-select: none;
+        }
+        .js-ban-user:hover, .js-ban-device:hover {
+            filter: brightness(1.3);
+            transform: scale(1.03);
+        }
+        .js-ban-user:active, .js-ban-device:active {
+            transform: scale(0.95);
+        }
+
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fff 30%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ban-modal-overlay {
+            background: rgba(2, 6, 23, 0.82);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="custom-scroll">
+
+    <!-- Auth View -->
+    <div id="authView" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950">
+        <div class="glass-panel login-card">
+            <div class="text-center mb-12">
+                <div class="inline-flex items-center justify-center w-24 h-24 rounded-[2rem] bg-indigo-600/20 mb-8 border border-white/10 shadow-2xl">
+                    <i class="fa-solid fa-crown text-5xl text-indigo-400"></i>
+                </div>
+                <h1 class="text-4xl font-extrabold tracking-tight gradient-text">Rezerve Admin</h1>
+                <p class="text-slate-400 mt-3 text-lg">Yönetim konsoluna hoş geldiniz</p>
+            </div>
+
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2 ml-1">Admin E-posta</label>
+                    <input type="email" id="loginEmail" required class="w-full px-5 py-4 rounded-2xl" placeholder="admin@rezerve.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2 ml-1">Güvenlik Anahtarı</label>
+                    <input type="password" id="loginPassword" required class="w-full px-5 py-4 rounded-2xl" placeholder="••••••••">
+                </div>
+                <button type="submit" id="loginBtn" class="w-full py-5 btn-gradient text-white font-bold rounded-2xl flex items-center justify-center space-x-3 text-lg">
+                    <span>Panel Girişi</span>
+                    <div id="loginSpinner" class="spinner hidden"></div>
+                </button>
+            </form>
+            <p id="loginError" class="mt-6 text-center text-rose-400 font-medium hidden flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="loginErrorText"></span>
+            </p>
+        </div>
+    </div>
+
+    <!-- App View -->
+    <div id="appView" class="hidden min-h-screen flex flex-col">
+        <!-- Sidebar/Topnav -->
+        <nav class="glass-panel mx-6 mt-6 mb-8 border-none rounded-3xl overflow-hidden shadow-2xl">
+            <div class="max-w-screen-2xl mx-auto px-8">
+                <div class="flex items-center justify-between h-24">
+                    <div class="flex items-center space-x-6">
+                        <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                            <i class="fa-solid fa-fingerprint text-2xl"></i>
+                        </div>
+                        <div>
+                            <span class="font-bold text-2xl tracking-tight block">Console</span>
+                            <span class="text-indigo-400 text-xs font-bold uppercase tracking-widest">Super Admin Access</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-8">
+                        <div class="hidden lg:flex items-center space-x-3 px-6 py-3 bg-white/5 rounded-2xl border border-white/5">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                            <span id="userEmail" class="text-sm font-medium text-slate-300 tracking-wide"></span>
+                        </div>
+                        <button id="logoutBtn" class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-all duration-300">
+                            <i class="fa-solid fa-power-off text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-screen-2xl mx-auto w-full px-6 pb-20 flex-1">
+            <div class="glass-panel border-none shadow-2xl overflow-hidden flex flex-col min-h-[700px]">
+                <!-- Navigation Tabs -->
+                <div class="flex md:grid md:grid-cols-6 border-b border-white/5 bg-white/5 overflow-x-auto custom-scroll">
+                    <button onclick="switchTab('pending')" id="tab-pending" class="tab-btn active p-4 md:p-6 flex flex-col items-center justify-center space-y-2 min-w-[120px] md:min-w-0">
+                        <i class="fa-solid fa-clock-rotate-left text-lg md:text-xl"></i>
+                        <span class="text-[10px] md:text-xs uppercase tracking-widest text-center">Onay Bekleyenler</span>
+                    </button>
+                    <button onclick="switchTab('approved')" id="tab-approved" class="tab-btn p-4 md:p-6 flex flex-col items-center justify-center space-y-2 min-w-[120px] md:min-w-0">
+                        <i class="fa-solid fa-shop text-lg md:text-xl"></i>
+                        <span class="text-[10px] md:text-xs uppercase tracking-widest text-center">İşletmeler</span>
+                    </button>
+                    <button onclick="switchTab('customers')" id="tab-customers" class="tab-btn p-4 md:p-6 flex flex-col items-center justify-center space-y-2 min-w-[120px] md:min-w-0">
+                        <i class="fa-solid fa-user-group text-lg md:text-xl"></i>
+                        <span class="text-[10px] md:text-xs uppercase tracking-widest text-center">Müşteriler</span>
+                    </button>
+                    <button onclick="switchTab('deletions')" id="tab-deletions" class="tab-btn p-4 md:p-6 flex flex-col items-center justify-center space-y-2 min-w-[120px] md:min-w-0">
+                        <i class="fa-solid fa-user-xmark text-lg md:text-xl"></i>
+                        <span class="text-[10px] md:text-xs uppercase tracking-widest text-center">Hesap Silme</span>
+                    </button>
+                    <button onclick="switchTab('notifications')" id="tab-notifications" class="tab-btn p-4 md:p-6 flex flex-col items-center justify-center space-y-2 min-w-[120px] md:min-w-0">
+                        <i class="fa-solid fa-bullhorn text-lg md:text-xl"></i>
+                        <span class="text-[10px] md:text-xs uppercase tracking-widest text-center">Bildirimler</span>
+                    </button>
+                    <button onclick="switchTab('privacy')" id="tab-privacy" class="tab-btn p-4 md:p-6 flex flex-col items-center justify-center space-y-2 min-w-[120px] md:min-w-0">
+                        <i class="fa-solid fa-shield-halved text-lg md:text-xl"></i>
+                        <span class="text-[10px] md:text-xs uppercase tracking-widest text-center">Sistem Metinleri</span>
+                    </button>
+                </div>
+
+                <!-- Content Area -->
+                <div class="p-10 flex-1 flex flex-col">
+                    <!-- Search bar for lists -->
+                    <div id="searchContainer" class="hidden mb-10">
+                        <div class="relative max-w-xl group">
+                            <i class="fa-solid fa-magnifying-glass absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors"></i>
+                            <input type="text" id="searchInput" class="w-full pl-16 pr-6 py-5 rounded-2xl text-lg font-medium" placeholder="İsim, e-posta veya ID ile ara...">
+                        </div>
+                    </div>
+
+                    <div id="loadingIndicator" class="flex-1 flex flex-col items-center justify-center hidden">
+                        <div class="spinner w-12 h-12 border-indigo-500 mb-6"></div>
+                        <p class="text-slate-400 font-medium text-lg">Veritabanı taranıyor...</p>
+                    </div>
+
+                    <div id="emptyState" class="flex-1 flex flex-col items-center justify-center hidden opacity-50">
+                        <i class="fa-solid fa-folder-open text-7xl mb-6"></i>
+                        <p class="text-2xl font-bold" id="emptyStateText">Henüz kayıt bulunamadı</p>
+                    </div>
+
+                    <div id="listScrollArea" class="flex-1 overflow-y-auto pr-4 custom-scroll">
+                        <ul id="mainList" class="space-y-4"></ul>
+                    </div>
+
+                    <!-- Privacy Panel -->
+                    <div id="privacyPanel" class="hidden flex-1 animate-fadeIn">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-400 mb-3 ml-1">Görünüm Sürümü (v1.0.0)</label>
+                                <input id="policyVersion" type="text" class="w-full px-6 py-4 rounded-2xl">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-400 mb-3 ml-1">Son Güncelleme</label>
+                                <input id="policyDate" type="text" class="w-full px-6 py-4 rounded-2xl" placeholder="Örn: 18 Nisan 2026">
+                            </div>
+                        </div>
+                        <div class="mb-8">
+                            <label class="block text-sm font-semibold text-slate-400 mb-3 ml-1">Kısa Bilgi Özeti</label>
+                            <input id="policySummary" type="text" class="w-full px-6 py-4 rounded-2xl">
+                        </div>
+                        <div class="mb-10">
+                            <label class="block text-sm font-semibold text-slate-400 mb-3 ml-1">Gizlilik ve Kullanım Politikası (Zengin Metin)</label>
+                            <textarea id="policyContent" rows="15" class="w-full px-6 py-5 rounded-3xl custom-scroll leading-relaxed"></textarea>
+                        </div>
+                        <button id="savePolicyBtn" class="btn-gradient px-12 py-5 rounded-2xl font-bold text-lg">
+                            <i class="fa-solid fa-cloud-arrow-up mr-3"></i>Sisteme Kaydet
+                        </button>
+                    </div>
+
+                    <!-- Notifications Panel -->
+                    <div id="notificationsPanel" class="hidden flex-1 max-w-4xl animate-fadeIn">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-400 mb-3 ml-1">Hedef Kullanıcı Grubu</label>
+                                <select id="notifTarget" class="w-full px-6 py-4 rounded-2xl appearance-none">
+                                    <option value="all">Tüm Topluluk (Broadcast)</option>
+                                    <option value="customers">Sadece Müşteriler</option>
+                                    <option value="businesses">Sadece İşletme Sahipleri</option>
+                                    <option value="specific">Spesifik Hedef (ID ile)</option>
+                                </select>
+                            </div>
+                            <div id="specificIdWrapper" class="hidden">
+                                <label class="block text-sm font-semibold text-slate-400 mb-3 ml-1">Target External ID (UID)</label>
+                                <input id="specificIdInput" type="text" class="w-full px-6 py-4 rounded-2xl" placeholder="Kullanıcı ID'sini buraya yapıştırın">
+                            </div>
+                        </div>
+                        <div class="mb-8">
+                            <label class="block text-sm font-semibold text-slate-400 mb-3 ml-1">Bildirim Başlığı</label>
+                            <input id="notifTitle" type="text" class="w-full px-6 py-4 rounded-2xl" placeholder="Kısa ve dikkat çekici bir başlık...">
+                        </div>
+                        <div class="mb-10">
+                            <label class="block text-sm font-semibold text-slate-400 mb-3 ml-1">Mesaj İçeriği</label>
+                            <textarea id="notifMessage" rows="6" class="w-full px-6 py-5 rounded-3xl" placeholder="Kullanıcılara iletmek istediğiniz mesajı buraya yazın..."></textarea>
+                        </div>
+                        <button id="sendNotifBtn" class="btn-gradient px-12 py-5 rounded-2xl font-bold text-lg">
+                            <i class="fa-solid fa-paper-plane-top mr-3"></i>Yayına Ver
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="businessModal" class="fixed inset-0 z-[500] bg-black/80 backdrop-blur-xl hidden items-center justify-center p-4">
+        <div class="glass-panel modal-glass w-full max-w-5xl p-6 md:p-10 relative overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]">
+            <button onclick="closeModal()" class="absolute right-4 top-4 md:right-8 md:top-8 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all z-10">
+                <i class="fa-solid fa-xmark text-xl md:text-2xl"></i>
+            </button>
+            
+            <div class="modal-scroll-area custom-scroll">
+                <h2 id="modalTitle" class="text-3xl md:text-4xl font-extrabold mb-8 md:mb-10 gradient-text pr-12">İşletme Profili</h2>
+                
+                <div id="modalLoading" class="py-24 text-center">
+                    <div class="spinner mx-auto w-12 h-12 border-indigo-500"></div>
+                </div>
+                
+                <div id="modalContent" class="hidden space-y-8 md:space-y-10 animate-fadeIn">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-indigo-600/10 p-8 rounded-3xl border border-indigo-500/20 shadow-inner">
+                        <div class="flex items-center space-x-3 mb-4 text-indigo-400 font-bold uppercase tracking-wider text-sm">
+                            <i class="fa-solid fa-star"></i> <span>Müşteri Puanı</span>
+                        </div>
+                        <div class="flex items-baseline space-x-3">
+                            <span id="modalRating" class="text-6xl font-black text-white">0.0</span>
+                            <span id="modalReviewCount" class="text-slate-500 text-lg font-medium">/ 0 yorum</span>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 bg-emerald-600/10 p-8 rounded-3xl border border-emerald-500/20 shadow-inner">
+                        <div class="flex items-center space-x-3 mb-4 text-emerald-400 font-bold uppercase tracking-wider text-sm">
+                            <i class="fa-solid fa-clock"></i> <span>Çalışma Saatleri</span>
+                        </div>
+                        <div id="modalWorkingHours" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-slate-300"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 border-t border-white/5 pt-8">
+                    <div class="bg-slate-800/40 p-8 rounded-3xl border border-white/5 space-y-4">
+                        <div class="flex items-center space-x-3 text-indigo-400 font-bold uppercase tracking-wider text-sm">
+                            <i class="fa-solid fa-map-location-dot"></i> <span>Açık Adres & Konum</span>
+                        </div>
+                        <p id="modalAddress" class="text-slate-300 text-sm leading-relaxed min-h-[3em]">Adres yükleniyor...</p>
+                        <div id="modalLocationLink" class="pt-2"></div>
+                    </div>
+                    <div class="bg-slate-800/40 p-8 rounded-3xl border border-white/5 space-y-4">
+                        <div class="flex items-center space-x-3 text-amber-400 font-bold uppercase tracking-wider text-sm">
+                            <i class="fa-solid fa-gauge-high"></i> <span>Doluluk & Yoğunluk</span>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-xs font-bold text-slate-400">
+                                <span id="densityLabel">Hesaplanıyor...</span>
+                                <span id="densityPercent">0%</span>
+                            </div>
+                            <div class="w-full h-3 bg-white/5 rounded-full overflow-hidden">
+                                <div id="densityBar" class="h-full bg-gradient-to-r from-emerald-500 to-amber-500 transition-all duration-1000" style="width: 0%"></div>
+                            </div>
+                            <p id="densityInfo" class="text-[10px] text-slate-500 italic">Son 30 günlük randevu trafiği baz alınmıştır.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <div class="space-y-5">
+                        <div class="flex items-center justify-between border-b border-white/5 pb-4">
+                            <h4 class="text-xl font-bold flex items-center"><i class="fa-solid fa-users-medical mr-3 text-indigo-400"></i>Uzmanlar</h4>
+                            <span id="modalEmployeeCount" class="px-3 py-1 bg-white/5 rounded-full text-xs font-bold text-slate-400">0</span>
+                        </div>
+                        <ul id="modalEmployees" class="space-y-3 max-h-[300px] overflow-y-auto pr-3 custom-scroll"></ul>
+                    </div>
+                    <div class="space-y-5">
+                        <div class="flex items-center justify-between border-b border-white/5 pb-4">
+                            <h4 class="text-xl font-bold flex items-center"><i class="fa-solid fa-wand-magic-sparkles mr-3 text-pink-400"></i>Hizmet Katalogu</h4>
+                            <span id="modalServiceCount" class="px-3 py-1 bg-white/5 rounded-full text-xs font-bold text-slate-400">0</span>
+                        </div>
+                        <ul id="modalServices" class="space-y-3 max-h-[300px] overflow-y-auto pr-3 custom-scroll"></ul>
+                    </div>
+                </div>
+
+                <div class="space-y-6 pt-4 border-t border-white/5">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-2xl font-bold flex items-center"><i class="fa-solid fa-comments mr-4 text-emerald-400"></i>Müşteri Yorumları</h4>
+                        <span class="text-xs text-slate-500 uppercase tracking-widest font-bold">Salt Okunur Mod</span>
+                    </div>
+                    <div id="modalReviews" class="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[400px] overflow-y-auto pr-4 custom-scroll">
+                        <!-- Yorumlar buraya gelecek -->
+                    </div>
+                </div>
+            </div> <!-- End scroll area -->
+        </div>
+    </div>
+
+    <div id="banConfigModal" class="fixed inset-0 z-[700] hidden items-center justify-center p-4 ban-modal-overlay">
+        <div class="glass-panel w-full max-w-xl p-7 rounded-3xl border border-white/10 shadow-2xl">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h3 id="banModalTitle" class="text-2xl font-extrabold text-white">Ban Yapılandırması</h3>
+                    <p class="text-slate-400 mt-1 text-sm">Sebep ve süre bilgisi zorunludur.</p>
+                </div>
+                <button id="banModalClose" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="mt-6 space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">Ban Sebebi</label>
+                    <input id="banReasonInput" type="text" class="w-full px-4 py-3 rounded-xl" placeholder="Örn: Topluluk kurallarına aykırı kullanım">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">Ban Türü</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="banTypeTimed" class="px-4 py-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 font-bold">Süreli</button>
+                        <button id="banTypePermanent" class="px-4 py-3 rounded-xl border border-white/10 bg-white/5 font-bold">Süresiz</button>
+                    </div>
+                </div>
+
+                <div id="banDaysWrapper">
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">Süre (gün)</label>
+                    <input id="banDaysInput" type="number" min="1" value="7" class="w-full px-4 py-3 rounded-xl">
+                </div>
+            </div>
+
+            <div class="mt-8 flex items-center justify-end gap-3">
+                <button id="banCancelBtn" class="px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 font-semibold">Vazgeç</button>
+                <button id="banSaveBtn" class="btn-gradient px-6 py-3 rounded-xl font-bold">Banı Uygula</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase System -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, Timestamp, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBaBI-Pl-p702WgLvMeIKIzv0zsOVvdt4Y",
+            authDomain: "rezerve-2e744.firebaseapp.com",
+            projectId: "rezerve-2e744",
+            storageBucket: "rezerve-2e744.firebasestorage.app",
+            messagingSenderId: "202015448126",
+            appId: "1:202015448126:web:4957b0fdb97f7ae9efc56f"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const functions = getFunctions(app, "europe-west1");
+
+        // Core Constants
+        const ADMIN_EMAILS = ['rezerve1313@gmail.com', 'adaysal2311@gmail.com'];
+        // API Keys moved to Firebase Functions Backend for Security
+
+        // State
+        let currentTab = 'pending';
+        let fullDataCache = [];
+        let bannedDevicesMap = new Map();
+
+        // UI References
+        const authView = document.getElementById('authView');
+        const appView = document.getElementById('appView');
+        const loginForm = document.getElementById('loginForm');
+        const userEmailSpan = document.getElementById('userEmail');
+        const mainList = document.getElementById('mainList');
+        const loadingBox = document.getElementById('loadingIndicator');
+        const emptyBox = document.getElementById('emptyState');
+        const banConfigModal = document.getElementById('banConfigModal');
+        const banModalTitle = document.getElementById('banModalTitle');
+        const banReasonInput = document.getElementById('banReasonInput');
+        const banTypeTimed = document.getElementById('banTypeTimed');
+        const banTypePermanent = document.getElementById('banTypePermanent');
+        const banDaysWrapper = document.getElementById('banDaysWrapper');
+        const banDaysInput = document.getElementById('banDaysInput');
+        const banSaveBtn = document.getElementById('banSaveBtn');
+        const banCancelBtn = document.getElementById('banCancelBtn');
+        const banModalClose = document.getElementById('banModalClose');
+
+        // initialization
+        setPersistence(auth, browserLocalPersistence);
+
+        // Auth Flow
+        onAuthStateChanged(auth, async (user) => {
+            if (user && ADMIN_EMAILS.includes(user.email)) {
+                authView.classList.add('hidden');
+                appView.classList.remove('hidden');
+                userEmailSpan.innerText = user.email.toLowerCase();
+                switchTab('pending');
+            } else {
+                if (user) await signOut(auth);
+                authView.classList.remove('hidden');
+                appView.classList.add('hidden');
+            }
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+            const spinner = document.getElementById('loginSpinner');
+            const error = document.getElementById('loginError');
+
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            error.classList.add('hidden');
+
+            try {
+                if (!ADMIN_EMAILS.includes(email.toLowerCase())) throw new Error("Yetersiz yetki: Sadece admin giriş yapabilir.");
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (err) {
+                document.getElementById('loginErrorText').innerText = err.message.includes('auth/') ? "Geçersiz kimlik bilgileri." : err.message;
+                error.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+        // Tab Management
+        window.switchTab = (tab) => {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+
+            // Toggle UI Sections
+            const contentPanels = ['privacy', 'notifications'];
+            const listPanels = ['pending', 'approved', 'customers', 'deletions'];
+            
+            contentPanels.forEach(p => document.getElementById(`${p}Panel`).classList.add('hidden'));
+            document.getElementById('searchContainer').classList.toggle('hidden', !listPanels.includes(tab));
+            document.getElementById('listScrollArea').classList.toggle('hidden', contentPanels.includes(tab));
+
+            if (contentPanels.includes(tab)) {
+                document.getElementById(`${tab}Panel`).classList.remove('hidden');
+                if (tab === 'privacy') loadPrivacy();
+            } else {
+                loadSystemData();
+            }
+        };
+
+        // Data Loader
+        async function loadSystemData() {
+            mainList.innerHTML = '';
+            loadingBox.classList.remove('hidden');
+            emptyBox.classList.add('hidden');
+
+            try {
+                const usersRef = collection(db, "users");
+                let userDocs = [];
+
+                if (currentTab === 'pending') {
+                    const q1 = query(usersRef, where("type", "==", "business"), where("approvalStatus", "==", "pending"));
+                    const q2 = query(usersRef, where("type", "==", "business"), where("approvalStatus", "==", "appealed"));
+                    const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+                    snap1.forEach(d => userDocs.push({id: d.id, ...d.data()}));
+                    snap2.forEach(d => userDocs.push({id: d.id, ...d.data()}));
+                } else if (currentTab === 'approved') {
+                    const q = query(usersRef, where("type", "==", "business"), where("approvalStatus", "==", "approved"));
+                    const snap = await getDocs(q);
+                    snap.forEach(d => userDocs.push({id: d.id, ...d.data()}));
+                } else if (currentTab === 'customers') {
+                    const q = query(usersRef, where("type", "==", "customer"));
+                    const snap = await getDocs(q);
+                    snap.forEach(d => userDocs.push({id: d.id, ...d.data()}));
+                } else if (currentTab === 'deletions') {
+                    const q = query(collection(db, "deletion_requests"));
+                    const snap = await getDocs(q);
+                    snap.forEach(d => userDocs.push({id: d.id, ...d.data()}));
+                }
+
+                if (currentTab === 'approved' || currentTab === 'customers') {
+                    const bDevSnap = await getDocs(collection(db, "banned_devices"));
+                    bannedDevicesMap.clear();
+                    const nowMs = Date.now();
+                    for (const d of bDevSnap.docs) {
+                        const data = d.data();
+                        const expiresAt = data.expiresAt?.toDate?.() || null;
+                        if (expiresAt && expiresAt.getTime() <= nowMs) {
+                            await deleteDoc(doc(db, "banned_devices", d.id));
+                            continue;
+                        }
+                        bannedDevicesMap.set(d.id, data);
+                    }
+                }
+
+                if (userDocs.length === 0) {
+                    loadingBox.classList.add('hidden');
+                    emptyBox.classList.remove('hidden');
+                    return;
+                }
+
+                let finalData = [];
+                if (currentTab === 'customers' || currentTab === 'deletions') {
+                    finalData = userDocs.map(u => ({ user: u, business: null }));
+                } else {
+                    const busRef = collection(db, "businesses");
+                    for (const u of userDocs) {
+                        const bQ = query(busRef, where("ownerId", "==", u.id));
+                        const bSnap = await getDocs(bQ);
+                        let bData = null;
+                        bSnap.forEach(d => bData = {id: d.id, ...d.data()});
+                        finalData.push({ user: u, business: bData });
+                    }
+                }
+
+                fullDataCache = finalData;
+                renderMainList(finalData);
+                loadingBox.classList.add('hidden');
+            } catch (err) {
+                console.error(err);
+                loadingBox.innerHTML = `<p class="text-rose-400 font-bold">Hata: ${err.message}</p>`;
+            }
+        }
+
+        function renderMainList(items) {
+            mainList.innerHTML = '';
+            items.forEach(item => {
+                const { user, business } = item;
+                const li = document.createElement('li');
+                li.className = "card-item p-8 rounded-[2rem] flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6";
+                
+                let title = currentTab === 'customers' ? user.name : (business?.name || "Eksik İşletme Profili");
+                let description = currentTab === 'customers' ? user.email : (business?.category || "Sektör Belirtilmemiş");
+                if (currentTab === 'deletions') {
+                    title = user.email || 'Bilinmeyen E-posta';
+                    description = `Durum: ${user.status || 'bekliyor'} | Sebep: ${user.reason || 'Belirtilmedi'} | Tarih: ${user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'Bilinmiyor'}`;
+                }
+                const isAccountBanned = user.isBanned === true || user.isBanned === "true" || user.isBanned === 1;
+
+                const deviceBanInfo = user.deviceId ? bannedDevicesMap.get(user.deviceId) : null;
+                const isDeviceBanned = Boolean(deviceBanInfo);
+                const accountBanLabel = isAccountBanned
+                    ? (user.banExpiresAt ? 'HESAP SÜRELİ BANLI' : 'HESAP SÜRESİZ BANLI')
+                    : '';
+                const deviceBanLabel = isDeviceBanned
+                    ? (deviceBanInfo.expiresAt ? 'CİHAZ SÜRELİ BANLI' : 'CİHAZ SÜRESİZ BANLI')
+                    : '';
+
+                const bizDataAttr = business ? encodeURIComponent(JSON.stringify(business)) : '';
+
+                // ── INFO SECTION ──
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'flex-1';
+                infoDiv.innerHTML = `
+                    <div class="flex items-center gap-4 mb-3">
+                        <h3 class="text-2xl font-bold text-white tracking-tight">${title}</h3>
+                        <div class="flex gap-2">
+                            ${isAccountBanned ? `<span class="px-3 py-1 bg-rose-500/20 text-rose-400 text-[10px] font-black tracking-widest rounded-lg border border-rose-500/20">${accountBanLabel}</span>` : ''}
+                            ${isDeviceBanned ? `<span class="px-3 py-1 bg-orange-500/20 text-orange-400 text-[10px] font-black tracking-widest rounded-lg border border-orange-500/20">${deviceBanLabel}</span>` : ''}
+                            ${user.approvalStatus === 'appealed' ? '<span class="px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-black tracking-widest rounded-lg border border-amber-500/20">İTİRAZ</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-x-10 gap-y-3 text-slate-400 text-sm">
+                        <span class="flex items-center"><i class="fa-solid fa-hashtag w-6 text-indigo-400"></i> ${description}</span>
+                        ${currentTab === 'deletions' ? '' : `<span class="flex items-center"><i class="fa-solid fa-at w-6 text-indigo-400"></i> ${user.email}</span>
+                        <span class="flex items-center"><i class="fa-solid fa-phone-flip w-6 text-indigo-400"></i> ${user.phone}</span>
+                        <span class="flex items-center"><i class="fa-solid fa-map-pin w-6 text-indigo-400"></i> ${user.district || '?'}, ${user.city || '?'}</span>`}
+                    </div>`;
+                li.appendChild(infoDiv);
+
+                // ── COPY BUTTONS (UID + DID) via DOM ──
+                const metaRow = infoDiv.querySelector('.flex.flex-wrap');
+                const uidSpan = document.createElement('span');
+                uidSpan.className = 'flex items-center cursor-pointer group';
+                uidSpan.title = 'Kopyalamak için tıkla';
+                uidSpan.innerHTML = `<i class="fa-solid fa-fingerprint w-6 text-indigo-400 group-hover:text-white transition-colors"></i> <span class="text-[10px] bg-white/5 px-2 py-1 rounded group-hover:bg-indigo-600/30 transition-all font-mono">UID: ${user.id}</span>`;
+                uidSpan.addEventListener('click', () => { navigator.clipboard.writeText(user.id); showToast('Hesap ID kopyalandı'); });
+                metaRow.appendChild(uidSpan);
+
+                const didSpan = document.createElement('span');
+                didSpan.className = 'flex items-center cursor-pointer group';
+                didSpan.title = 'Kopyalamak için tıkla';
+                didSpan.innerHTML = `<i class="fa-solid fa-mobile-screen w-6 text-indigo-400 group-hover:text-white transition-colors"></i> <span class="text-[10px] bg-white/5 px-2 py-1 rounded group-hover:bg-orange-600/30 transition-all font-mono">DID: ${user.deviceId || 'Bilinmiyor'}</span>`;
+                didSpan.addEventListener('click', () => { if (user.deviceId) { navigator.clipboard.writeText(user.deviceId); showToast('Cihaz ID kopyalandı'); } });
+                metaRow.appendChild(didSpan);
+
+                // ── ACTION BUTTONS via DOM API (not innerHTML) ──
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'flex flex-wrap gap-2 w-full lg:w-auto';
+
+                if (currentTab === 'pending') {
+                    const rejectBtn = document.createElement('button');
+                    rejectBtn.className = 'flex-1 lg:flex-none px-6 py-4 bg-white/5 hover:bg-rose-500/10 text-rose-400 rounded-2xl transition-all border border-white/5 hover:border-rose-500/20 cursor-pointer';
+                    rejectBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                    rejectBtn.addEventListener('click', () => window.handleDecision(user.id, 'rejected', rejectBtn));
+                    actionsDiv.appendChild(rejectBtn);
+
+                    const approveBtn = document.createElement('button');
+                    approveBtn.className = 'flex-1 lg:flex-none px-10 py-4 btn-gradient text-white font-bold rounded-2xl shadow-lg transition-all cursor-pointer';
+                    approveBtn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> Onayla';
+                    approveBtn.addEventListener('click', () => window.handleDecision(user.id, 'approved', approveBtn));
+                    actionsDiv.appendChild(approveBtn);
+                } else if (currentTab === 'deletions') {
+                    const deleteReqBtn = document.createElement('button');
+                    deleteReqBtn.className = 'flex-1 lg:flex-none px-6 py-4 bg-white/5 hover:bg-emerald-500/10 text-emerald-400 rounded-2xl transition-all border border-white/5 hover:border-emerald-500/20 cursor-pointer font-bold';
+                    deleteReqBtn.innerHTML = '<i class="fa-solid fa-check-double mr-2"></i> Talebi Kapat';
+                    deleteReqBtn.addEventListener('click', async () => {
+                        try {
+                            await deleteDoc(doc(db, "deletion_requests", user.id));
+                            li.remove();
+                            showToast("Talep kapatıldı ve silindi.");
+                        } catch(err) {
+                            console.error(err); showToast("Hata oluştu.");
+                        }
+                    });
+                    actionsDiv.appendChild(deleteReqBtn);
+                } else {
+                    // Detail button
+                    if (business) {
+                        const detailBtn = document.createElement('button');
+                        detailBtn.className = 'flex-1 lg:flex-none px-8 py-4 bg-white/5 hover:bg-indigo-600/20 text-indigo-400 rounded-2xl transition-all border border-white/5 hover:border-indigo-500/20 font-bold cursor-pointer';
+                        detailBtn.textContent = 'Detaylar';
+                        detailBtn.addEventListener('click', () => window.openDetailModal(business));
+                        actionsDiv.appendChild(detailBtn);
+                    }
+
+                    // Sadece Cihaz Banı (Device Ban) butonunu bırakıyoruz ve adını "Banla" yapıyoruz.
+                    // Kullanıcı sadece "Banla" butonunu görmek istedi.
+                    if (user.deviceId) {
+                        const banDevBtn = document.createElement('button');
+                        banDevBtn.type = 'button';
+                        banDevBtn.className = `flex-1 lg:flex-none px-6 py-4 ${isDeviceBanned ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'} rounded-2xl transition-all active:scale-95 border font-bold cursor-pointer`;
+                        banDevBtn.innerHTML = `<i class="fa-solid ${isDeviceBanned ? 'fa-user-check' : 'fa-user-slash'} mr-2"></i>${isDeviceBanned ? 'Banı Kaldır' : 'Banla'}`;
+                        banDevBtn.addEventListener('click', async (e) => {
+                            e.preventDefault(); e.stopPropagation();
+                            console.log('[ADMIN] Ban device clicked:', user.deviceId, 'currently banned:', isDeviceBanned);
+                            try {
+                                await window.toggleDeviceBan(user.deviceId, isDeviceBanned, banDevBtn);
+                            } catch (err) {
+                                console.error('Click error:', err);
+                            }
+                        });
+                        actionsDiv.appendChild(banDevBtn);
+                    }
+                }
+
+                li.appendChild(actionsDiv);
+                mainList.appendChild(li);
+            });
+        }
+
+        // Toast notification helper
+        function showToast(msg) {
+            const existing = document.getElementById('admin-toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.id = 'admin-toast';
+            toast.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-[900] px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl shadow-2xl';
+            toast.style.animation = 'fadeIn 0.3s ease';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+        // Search Controller
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const t = e.target.value.toLowerCase();
+            const filtered = fullDataCache.filter(i => 
+                (i.business?.name || '').toLowerCase().includes(t) || 
+                (i.user.name || '').toLowerCase().includes(t) ||
+                (i.user.email || '').toLowerCase().includes(t) ||
+                (i.user.id || '').toLowerCase().includes(t)
+            );
+            renderMainList(filtered);
+        });
+
+        // Detail Modal Controller
+        window.openDetailModal = async (business) => {
+            const modal = document.getElementById('businessModal');
+            modal.style.display = 'flex';
+            document.getElementById('modalLoading').classList.remove('hidden');
+            document.getElementById('modalContent').classList.add('hidden');
+            document.getElementById('modalTitle').innerText = business.name;
+            document.getElementById('modalRating').innerText = (business.rating || 0).toFixed(1);
+            document.getElementById('modalReviewCount').innerText = `/ ${business.reviewCount || 0} yorum`;
+            
+            // Set Location
+            document.getElementById('modalAddress').innerText = `${business.address || 'Adres belirtilmemiş'}, ${business.district || ''}/${business.city || ''}`;
+            const locLink = document.getElementById('modalLocationLink');
+            if (business.latitude && business.longitude) {
+                locLink.innerHTML = `<a href="https://www.google.com/maps?q=${business.latitude},${business.longitude}" target="_blank" class="inline-flex items-center text-xs font-bold text-indigo-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-up-right-from-square mr-2"></i>Haritada Göster
+                </a>`;
+            } else locLink.innerHTML = "";
+
+            try {
+                // Parallel fetching: Employees, Services, Reservations (for density), and Reviews
+                const [eSnap, sSnap, rSnap, revSnap] = await Promise.all([
+                    getDocs(query(collection(db, "employees"), where("businessId", "==", business.id))),
+                    getDocs(query(collection(db, "services"), where("businessId", "==", business.id))),
+                    getDocs(query(collection(db, "reservations"), where("businessId", "==", business.id))),
+                    getDocs(query(collection(db, "reviews"), where("businessId", "==", business.id)))
+                ]);
+
+                // Employees mapping
+                let eList = document.getElementById('modalEmployees'); eList.innerHTML = '';
+                document.getElementById('modalEmployeeCount').innerText = eSnap.size;
+                eSnap.forEach(d => {
+                    const e = d.data();
+                    const li = document.createElement('li');
+                    li.className = "p-5 bg-white/5 rounded-2xl flex items-center justify-between border border-white/5 group hover:border-indigo-500/30 transition-all";
+                    li.innerHTML = `
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center font-bold text-indigo-400">${e.name[0]}</div>
+                            <div>
+                                <span class="font-bold block">${e.name}</span>
+                                <span class="text-xs text-slate-500">${e.title || 'Personel'}</span>
+                            </div>
+                        </div>
+                        <div class="text-indigo-400 font-bold"><i class="fa-solid fa-star text-[10px] mr-1"></i>${(e.rating||0).toFixed(1)}</div>
+                    `;
+                    eList.appendChild(li);
+                });
+
+                // Services mapping
+                let sList = document.getElementById('modalServices'); sList.innerHTML = '';
+                document.getElementById('modalServiceCount').innerText = sSnap.size;
+                sSnap.forEach(d => {
+                    const s = d.data();
+                    const li = document.createElement('li');
+                    li.className = "p-5 bg-white/5 rounded-2xl flex items-center justify-between border border-white/5 group hover:border-pink-500/30 transition-all";
+                    li.innerHTML = `
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center text-pink-400"><i class="fa-solid fa-sparkles text-sm"></i></div>
+                            <div>
+                                <span class="font-bold block">${s.name}</span>
+                                <span class="text-xs text-slate-500"><i class="fa-solid fa-hourglass-start mr-1"></i>${s.duration} dk</span>
+                            </div>
+                        </div>
+                        <div class="text-emerald-400 font-black text-lg">${s.price}₺</div>
+                    `;
+                    sList.appendChild(li);
+                });
+
+                // Hours mapping
+                let hList = document.getElementById('modalWorkingHours'); hList.innerHTML = '';
+                const daysMap = {"monday":"Pzt", "tuesday":"Sal", "wednesday":"Çar", "thursday":"Per", "friday":"Cum", "saturday":"Cmt", "sunday":"Paz"};
+                if (business.workingHours) {
+                    Object.keys(daysMap).forEach(key => {
+                        const h = business.workingHours[key];
+                        const div = document.createElement('div');
+                        div.className = "p-3 bg-white/5 rounded-xl border border-white/5 text-center";
+                        div.innerHTML = `
+                            <span class="block text-[10px] text-slate-500 font-bold uppercase mb-1">${daysMap[key]}</span>
+                            <span class="font-bold text-white text-xs">${h?.closed ? 'KAPALI' : (h?.start || '09:00') + '-' + (h?.end || '18:00')}</span>
+                        `;
+                        hList.appendChild(div);
+                    });
+                }
+
+                // Density Calculation (Simple logic: based on total active reservations vs arbitrary "capacity" of 100/mo)
+                const activeRes = rSnap.docs.filter(d => ['approved', 'completed', 'pending'].includes(d.data().status)).length;
+                const density = Math.min(Math.round((activeRes / 50) * 100), 100); // 50 is base capacity for meter
+                document.getElementById('densityBar').style.width = density + '%';
+                document.getElementById('densityPercent').innerText = density + '%';
+                document.getElementById('densityLabel').innerText = density > 70 ? 'Yüksek Yoğunluk' : (density > 30 ? 'Orta Yoğunluk' : 'Düşük Yoğunluk');
+                
+                // Reviews rendering
+                const revList = document.getElementById('modalReviews'); revList.innerHTML = '';
+                if (revSnap.empty) revList.innerHTML = '<p class="text-slate-500 italic p-4">Henüz yorum yapılmamış.</p>';
+                revSnap.forEach(d => {
+                    const r = d.data();
+                    const date = r.createdAt?.toDate().toLocaleDateString('tr-TR') || 'Bilinmiyor';
+                    const div = document.createElement('div');
+                    div.className = "bg-white/5 border border-white/5 p-5 rounded-2xl space-y-3";
+                    div.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="font-bold block text-white">${r.customerName || 'Anonim'}</span>
+                                <span class="text-[10px] text-slate-500 uppercase font-bold">${date}</span>
+                            </div>
+                            <div class="flex text-amber-500 text-xs">
+                                ${Array(5).fill().map((_, i) => `<i class="fa-${i < r.rating ? 'solid' : 'regular'} fa-star"></i>`).join('')}
+                            </div>
+                        </div>
+                        <p class="text-slate-400 text-sm italic leading-relaxed">"${r.comment || 'Yorumsuz'}"</p>
+                    `;
+                    revList.appendChild(div);
+                });
+
+                document.getElementById('modalLoading').classList.add('hidden');
+                document.getElementById('modalContent').classList.remove('hidden');
+            } catch (err) { alert(err.message); }
+        };
+
+        window.closeModal = () => document.getElementById('businessModal').style.display = 'none';
+
+        // Actions
+        window.handleDecision = async (uid, status, btn) => {
+            if (!confirm(`Bu işletmeyi ${status === 'approved' ? 'onaylamak' : 'reddetmek'} istediğinize emin misiniz?`)) return;
+            try {
+                await updateDoc(doc(db, "users", uid), { approvalStatus: status });
+                // Notify via OneSignal
+                const title = status === 'approved' ? "Tebrikler!" : "Başvuru Sonucu";
+                const msg = status === 'approved' ? "İşletme başvurunuz onaylandı. Hesabınıza giriş yapabilirsiniz." : "Başvurunuz kriterlerimize uygun bulunmadı.";
+                await pushNotify(uid, title, msg);
+                switchTab(currentTab);
+            } catch (err) { alert(err.message); }
+        };
+
+        window.toggleUserBan = async (uid, current, btn) => {
+            if (current) {
+                const res = await Swal.fire({
+                    title: 'Ban Kaldır',
+                    text: 'Bu kullanıcının hesap banını tamamen kaldırmak istiyor musunuz?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, Kaldır',
+                    cancelButtonText: 'İptal'
+                });
+                if (!res.isConfirmed) return;
+                
+                try {
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    await updateDoc(doc(db, "users", uid), {
+                        isBanned: false,
+                        banExpiresAt: null,
+                        banReason: ""
+                    });
+                    showToast("Hesap banı başarıyla kaldırıldı.");
+                    loadSystemData();
+                } catch (err) { Swal.fire('Hata!', err.message, 'error'); }
+            } else {
+                const { value: formValues } = await Swal.fire({
+                    title: 'Hesap Banı Uygula',
+                    html:
+                        '<input id="swal-reason" class="swal2-input" placeholder="Ban Sebebi (Zorunlu)" style="max-width: 80% !important;">' +
+                        '<select id="swal-type" class="swal2-select" style="max-width: 80% !important;" onchange="document.getElementById(\'swal-custom-days\').style.display = this.value === \'custom\' ? \'flex\' : \'none\'">' +
+                        '<option value="7">7 Gün</option>' +
+                        '<option value="15">15 Gün</option>' +
+                        '<option value="30">30 Gün</option>' +
+                        '<option value="custom">Özel Gün</option>' +
+                        '<option value="permanent">Süresiz Ban</option>' +
+                        '</select>' +
+                        '<input id="swal-custom-days" type="number" class="swal2-input" placeholder="Kaç Gün?" min="1" style="display:none; max-width: 80% !important; margin-top:15px; margin-left:auto; margin-right:auto;">',
+                    focusConfirm: false,
+                    showCancelButton: true,
+                    confirmButtonText: 'Banla',
+                    cancelButtonText: 'Vazgeç',
+                    background: '#1e1b4b',
+                    color: '#fff',
+                    preConfirm: () => {
+                        const reason = document.getElementById('swal-reason').value.trim();
+                        const typeVal = document.getElementById('swal-type').value;
+                        let days = null;
+                        
+                        if (typeVal === 'custom') {
+                            days = parseInt(document.getElementById('swal-custom-days').value.trim(), 10);
+                            if (!days || days <= 0) {
+                                Swal.showValidationMessage('Geçerli bir gün sayısı girin!');
+                                return false;
+                            }
+                        } else if (typeVal !== 'permanent') {
+                            days = parseInt(typeVal, 10);
+                        }
+
+                        if (!reason) {
+                            Swal.showValidationMessage('Geçerli bir sebep girmelisiniz!');
+                            return false;
+                        }
+                        return { reason, typeVal, days };
+                    }
+                });
+
+                if (formValues) {
+                    try {
+                        let expiresAt = null;
+                        if (formValues.typeVal !== 'permanent') {
+                            expiresAt = Timestamp.fromDate(new Date(Date.now() + formValues.days * 24 * 60 * 60 * 1000));
+                        }
+                        
+                        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                        await updateDoc(doc(db, "users", uid), {
+                            isBanned: true,
+                            bannedAt: serverTimestamp(),
+                            banExpiresAt: expiresAt,
+                            banReason: formValues.reason
+                        });
+                        showToast("Hesap banı uygulandı.");
+                        loadSystemData();
+                    } catch (err) { Swal.fire('Hata!', err.message, 'error'); }
+                }
+            }
+        };
+
+        window.toggleDeviceBan = async (did, current, btn) => {
+            if (current) {
+                const res = await Swal.fire({
+                    title: 'Cihaz Banını Kaldır',
+                    text: `Bu cihazın (DID: ${did}) banını kaldırmak istiyor musunuz? İlgili hesapların banları da otomatik açılabilecektir.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Kaldır',
+                    cancelButtonText: 'İptal'
+                });
+                if (!res.isConfirmed) return;
+
+                try {
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    await deleteDoc(doc(db, "banned_devices", did));
+                    
+                    const usersWithSameDevice = await getDocs(query(collection(db, "users"), where("deviceId", "==", did)));
+                    for (const u of usersWithSameDevice.docs) {
+                        const data = u.data();
+                        if (data.isBanned && (data.banReason || "").startsWith("Cihaz banı:")) {
+                            await updateDoc(doc(db, "users", u.id), {
+                                isBanned: false,
+                                banReason: "",
+                                banExpiresAt: null
+                            });
+                        }
+                    }
+                    showToast("Cihaz banı başarıyla kaldırıldı.");
+                    loadSystemData();
+                } catch (err) { Swal.fire('Hata!', err.message, 'error'); }
+            } else {
+                const { value: formValues } = await Swal.fire({
+                    title: 'Cihaz Banı Uygula',
+                    html:
+                        '<input id="swal-reason" class="swal2-input" placeholder="Cihaz Ban Sebebi" style="max-width: 80% !important;">' +
+                        '<select id="swal-type" class="swal2-select" style="max-width: 80% !important;" onchange="document.getElementById(\'swal-custom-days\').style.display = this.value === \'custom\' ? \'flex\' : \'none\'">' +
+                        '<option value="7">7 Gün</option>' +
+                        '<option value="15">15 Gün</option>' +
+                        '<option value="30">30 Gün</option>' +
+                        '<option value="custom">Özel Gün</option>' +
+                        '<option value="permanent">Süresiz Ban</option>' +
+                        '</select>' +
+                        '<input id="swal-custom-days" type="number" class="swal2-input" placeholder="Kaç Gün?" min="1" style="display:none; max-width: 80% !important; margin-top:15px; margin-left:auto; margin-right:auto;">',
+                    focusConfirm: false,
+                    showCancelButton: true,
+                    confirmButtonText: 'Cihazı Banla',
+                    cancelButtonText: 'Vazgeç',
+                    background: '#431407', // orange-ish dark
+                    color: '#fff',
+                    preConfirm: () => {
+                        const reason = document.getElementById('swal-reason').value.trim();
+                        const typeVal = document.getElementById('swal-type').value;
+                        let days = null;
+                        
+                        if (typeVal === 'custom') {
+                            days = parseInt(document.getElementById('swal-custom-days').value.trim(), 10);
+                            if (!days || days <= 0) {
+                                Swal.showValidationMessage('Geçerli bir gün sayısı girin!');
+                                return false;
+                            }
+                        } else if (typeVal !== 'permanent') {
+                            days = parseInt(typeVal, 10);
+                        }
+
+                        if (!reason) {
+                            Swal.showValidationMessage('Sebep zorunludur!');
+                            return false;
+                        }
+                        return { reason, typeVal, days };
+                    }
+                });
+
+                if (formValues) {
+                    try {
+                        let expiresAt = null;
+                        if (formValues.typeVal !== 'permanent') {
+                            expiresAt = Timestamp.fromDate(new Date(Date.now() + formValues.days * 24 * 60 * 60 * 1000));
+                        }
+                        
+                        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                        await setDoc(doc(db, "banned_devices", did), { 
+                            deviceId: did, 
+                            bannedAt: serverTimestamp(),
+                            bannedBy: auth.currentUser.email,
+                            reason: formValues.reason,
+                            expiresAt: expiresAt
+                        });
+
+                        const usersWithSameDevice = await getDocs(query(collection(db, "users"), where("deviceId", "==", did)));
+                        for (const u of usersWithSameDevice.docs) {
+                            await updateDoc(doc(db, "users", u.id), {
+                                isBanned: true,
+                                bannedAt: serverTimestamp(),
+                                banReason: `Cihaz banı: ${formValues.reason}`,
+                                banExpiresAt: expiresAt
+                            });
+                        }
+                        showToast("Cihaz banı uygulandı.");
+                        loadSystemData();
+                    } catch (err) { Swal.fire('Hata!', err.message, 'error'); }
+                }
+            }
+        };
+
+        window.copyToClipboard = (text, label) => {
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                alert(`${label} panoya kopyalandı.`);
+            }).catch(err => {
+                console.error('Kopyalama hatası:', err);
+            });
+        };
+
+        // System Config Management
+        const loadPrivacy = async () => {
+            try {
+                const snap = await getDoc(doc(db, "app_config", "privacy_policy"));
+                if (snap.exists()) {
+                    const d = snap.data();
+                    document.getElementById('policyVersion').value = d.version || '1.0.0';
+                    document.getElementById('policyDate').value = d.updatedDate || '';
+                    document.getElementById('policySummary').value = d.summary || '';
+                    document.getElementById('policyContent').value = d.content || '';
+                }
+            } catch (e) { console.error(e); }
+        };
+
+        document.getElementById('savePolicyBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('savePolicyBtn');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-3"></i>Kaydediliyor...';
+            try {
+                await setDoc(doc(db, "app_config", "privacy_policy"), {
+                    version: document.getElementById('policyVersion').value,
+                    updatedDate: document.getElementById('policyDate').value,
+                    summary: document.getElementById('policySummary').value,
+                    content: document.getElementById('policyContent').value,
+                    syncAt: new Date()
+                }, { merge: true });
+                alert("Sistem metinleri başarıyla güncellendi.");
+            } catch (e) { alert(e.message); }
+            finally { btn.disabled = false; btn.innerHTML = original; }
+        });
+
+        // Notification Engine
+        const pushNotify = async (uid, title, msg) => {
+            try {
+                const sendPushNotification = httpsCallable(functions, 'sendPushNotification');
+                await sendPushNotification({
+                    targetUserId: uid,
+                    title: title,
+                    message: msg
+                });
+            } catch (e) { console.error("Notification failed", e); }
+        };
+
+        document.getElementById('sendNotifBtn').addEventListener('click', async () => {
+            const target = document.getElementById('notifTarget').value;
+            const title = document.getElementById('notifTitle').value;
+            const msg = document.getElementById('notifMessage').value;
+            const specificId = document.getElementById('specificIdInput').value;
+            const btn = document.getElementById('sendNotifBtn');
+            
+            if (!title || !msg) return alert("Başlık ve mesaj boş olamaz.");
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-satellite-dish fa-spin mr-3"></i>Yayınlanıyor...';
+
+            try {
+                const adminBroadcastNotification = httpsCallable(functions, 'adminBroadcastNotification');
+                await adminBroadcastNotification({
+                    target: target,
+                    title: title,
+                    message: msg,
+                    specificId: specificId
+                });
+                alert("Bildirim yayına verildi.");
+                document.getElementById('notifTitle').value = '';
+                document.getElementById('notifMessage').value = '';
+            } catch (e) { alert(e.message); }
+            finally { 
+                btn.disabled = false; 
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane-top mr-3"></i>Yayına Ver'; 
+            }
+        });
+
+        document.getElementById('notifTarget').addEventListener('change', (e) => {
+            document.getElementById('specificIdWrapper').classList.toggle('hidden', e.target.value !== 'specific');
+        });
+
+    </script>
+</body>
+</html>
