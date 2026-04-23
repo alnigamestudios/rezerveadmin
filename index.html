@@ -776,7 +776,9 @@
 
                     // Sadece Cihaz Banı (Device Ban) butonunu bırakıyoruz ve adını "Banla" yapıyoruz.
                     // Kullanıcı sadece "Banla" butonunu görmek istedi.
-                    if (user.deviceId) {
+                    const isAdminUser = ADMIN_EMAILS.includes((user.email || '').toLowerCase()) || user.type === 'admin';
+                    
+                    if (user.deviceId && !isAdminUser) {
                         const banDevBtn = document.createElement('button');
                         banDevBtn.type = 'button';
                         banDevBtn.className = `flex-1 lg:flex-none px-6 py-4 ${isDeviceBanned ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'} rounded-2xl transition-all active:scale-95 border font-bold cursor-pointer`;
