@@ -630,6 +630,8 @@
             }
 
             if (contentPanels.includes(tab)) {
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('loadingIndicator').classList.add('hidden');
                 document.getElementById(`${tab}Panel`).classList.remove('hidden');
                 if (tab === 'privacy') loadPrivacy();
                 if (tab === 'complaints') loadComplaints();
@@ -734,6 +736,7 @@
                         <div class="flex gap-3">
                             ${c.status !== 'closed' ? `<button onclick="replyComplaint('${c.id}', '${c.userId}')" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 transition-colors border border-indigo-500/20"><i class="fa-solid fa-reply mr-2"></i>Yanıtla</button>` : ''}
                             ${c.status !== 'closed' ? `<button onclick="closeComplaint('${c.id}')" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-500/20 text-slate-400 hover:bg-slate-500/30 transition-colors border border-slate-500/20"><i class="fa-solid fa-check mr-2"></i>Kapat</button>` : ''}
+                            ${c.status === 'closed' ? `<button onclick="reopenComplaint('${c.id}')" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors border border-emerald-500/20"><i class="fa-solid fa-folder-open mr-2"></i>Yeniden Aç</button>` : ''}
                         </div>
                     </div>
                 `;
@@ -810,6 +813,25 @@
                 try {
                     await updateDoc(doc(db, 'complaints', complaintId), { status: 'closed' });
                     showToast('Şikayet kapatıldı.');
+                } catch (err) { Swal.fire('Hata!', err.message, 'error'); }
+            }
+        };
+
+        window.reopenComplaint = async (complaintId) => {
+            const res = await Swal.fire({
+                title: 'Talebi Yeniden Aç',
+                text: 'Bu destek talebini tekrar açmak istiyor musunuz?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Evet, Aç',
+                cancelButtonText: 'Vazgeç',
+                background: '#1e1b4b',
+                color: '#fff'
+            });
+            if (res.isConfirmed) {
+                try {
+                    await updateDoc(doc(db, 'complaints', complaintId), { status: 'answered' });
+                    showToast('Şikayet yeniden açıldı.');
                 } catch (err) { Swal.fire('Hata!', err.message, 'error'); }
             }
         };
