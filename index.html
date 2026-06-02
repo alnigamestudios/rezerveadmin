@@ -213,6 +213,10 @@
                     <i class="fa-solid fa-shield-halved w-6 text-center"></i>
                     <span class="text-sm">Sistem Metinleri</span>
                 </button>
+                <button onclick="switchTab('versions')" id="tab-versions" class="tab-btn px-3 py-2.5">
+                    <i class="fa-solid fa-code-branch w-6 text-center"></i>
+                    <span class="text-sm">Sürüm Yönetimi</span>
+                </button>
             </div>
             
             <div class="p-4 border-t border-zinc-800">
@@ -335,6 +339,39 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Versions Panel -->
+                <div id="versionsPanel" class="hidden flex-1 overflow-y-auto custom-scroll pr-2 pb-20 md:pb-0 animate-fadeIn">
+                    <div class="max-w-3xl">
+                        <h2 class="text-2xl font-bold text-white mb-6">Uygulama Güncelleme Ayarları</h2>
+                        <div class="bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800 space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wide">Minimum Sürüm Kodu (minVersionCode)</label>
+                                    <p class="text-xs text-zinc-500 mb-4">Uygulamanın aktif olarak desteklediği en düşük sürüm numarası.</p>
+                                    <input id="minVersionCode" type="number" class="w-full px-4 py-3 rounded-xl text-sm" placeholder="Örn: 3">
+                                </div>
+                                <div class="flex flex-col justify-center pt-2">
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <div class="relative">
+                                            <input type="checkbox" id="forceUpdate" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+                                        </div>
+                                        <div class="text-sm font-semibold text-zinc-300">Zorunlu Güncelleme (forceUpdate)<p class="text-xs font-normal text-zinc-500 mt-0.5">Eski sürümler uygulamayı kullanamaz.</p></div>
+                                    </label>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wide">Güncelleme Mesajı (updateMessage)</label>
+                                <p class="text-xs text-zinc-500 mb-2">Kullanıcılara gösterilecek uyarı mesajı (Boş bırakılabilir).</p>
+                                <textarea id="updateMessage" rows="3" class="w-full px-4 py-3 rounded-xl custom-scroll text-sm" placeholder="Lütfen uygulamanızı güncelleyin..."></textarea>
+                            </div>
+                            <button id="saveVersionsBtn" class="btn-primary px-8 py-3 rounded-xl font-medium text-sm text-white shadow-sm flex items-center justify-center">
+                                <i class="fa-solid fa-cloud-arrow-up mr-2"></i>Ayarları Kaydet
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
         
@@ -363,6 +400,10 @@
             <button onclick="switchTab('privacy')" id="tab-privacy-mobile" class="tab-btn min-w-[72px] flex-shrink-0 snap-start">
                 <i class="fa-solid fa-shield-halved"></i>
                 <span class="text-[10px]">Sistem</span>
+            </button>
+            <button onclick="switchTab('versions')" id="tab-versions-mobile" class="tab-btn min-w-[72px] flex-shrink-0 snap-start">
+                <i class="fa-solid fa-code-branch"></i>
+                <span class="text-[10px]">Sürümler</span>
             </button>
         </nav>
     </div>
@@ -603,7 +644,7 @@
             
 
             // Toggle UI Sections
-            const contentPanels = ['privacy', 'notifications', 'complaints'];
+            const contentPanels = ['privacy', 'notifications', 'complaints', 'versions'];
             const listPanels = ['approved', 'customers', 'deletions'];
             
             contentPanels.forEach(p => document.getElementById(`${p}Panel`).classList.add('hidden'));
@@ -622,6 +663,7 @@
                 document.getElementById(`${tab}Panel`).classList.remove('hidden');
                 if (tab === 'privacy') loadPrivacy();
                 if (tab === 'complaints') loadComplaints();
+                if (tab === 'versions') loadVersions();
             } else {
                 loadSystemData();
             }
@@ -1440,6 +1482,37 @@
 
         document.getElementById('notifTarget').addEventListener('change', (e) => {
             document.getElementById('specificIdWrapper').classList.toggle('hidden', e.target.value !== 'specific');
+        });
+
+        // Version Control Management
+        const loadVersions = async () => {
+            try {
+                const snap = await getDoc(doc(db, "app_config", "app_update"));
+                if (snap.exists()) {
+                    const d = snap.data();
+                    document.getElementById('minVersionCode').value = d.minVersionCode || '';
+                    document.getElementById('forceUpdate').checked = d.forceUpdate || false;
+                    document.getElementById('updateMessage').value = d.updateMessage || '';
+                }
+            } catch (e) { console.error(e); }
+        };
+
+        document.getElementById('saveVersionsBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('saveVersionsBtn');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-3"></i>Kaydediliyor...';
+            try {
+                await setDoc(doc(db, "app_config", "app_update"), {
+                    minVersionCode: parseInt(document.getElementById('minVersionCode').value) || 0,
+                    forceUpdate: document.getElementById('forceUpdate').checked,
+                    updateMessage: document.getElementById('updateMessage').value,
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+                
+                showToast("Sürüm ayarları başarıyla güncellendi.");
+            } catch (e) { Swal.fire('Hata!', e.message, 'error'); }
+            finally { btn.disabled = false; btn.innerHTML = original; }
         });
 
     </script>
