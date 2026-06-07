@@ -564,7 +564,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, Timestamp, serverTimestamp, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, Timestamp, serverTimestamp, onSnapshot, orderBy, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
 
         const firebaseConfig = {
@@ -831,22 +831,16 @@
                         replies: replies,
                         repliedAt: serverTimestamp()
                     });
-                    await pushNotify(userId, 'Destek Talebiniz Yanıtlandı', 'Destek talebinize admin tarafından yanıt verildi. Detaylar için uygulamayı açın.');
                     
-                    // Firebase Cloud Function trigger için
                     try {
                         await addDoc(collection(db, 'notifications'), {
                             userId: userId,
                             title: 'Destek Talebiniz Yanıtlandı',
                             message: 'Destek talebinize admin tarafından yanıt verildi. Detaylar için uygulamayı açın.',
-                            type: 'system',
-                            relatedId: complaintId,
-                            deepLinkUrl: '',
-                            targetBusinessId: '',
-                            openReviewsOnOpen: false,
-                            actionRequired: false,
                             createdAt: serverTimestamp(),
-                            isRead: false
+                            isRead: false,
+                            type: 'support_reply',
+                            ticketId: complaintId
                         });
                     } catch (e) { console.error("Notification record failed", e); }
                     
@@ -989,7 +983,7 @@
                     </div>
                     <div class="flex flex-wrap gap-x-10 gap-y-3 text-slate-400 text-sm">
                         <span class="flex items-center"><i class="fa-solid fa-hashtag w-6 text-indigo-400"></i> ${description}</span>
-                        ${currentTab === 'deletions' ? '' : `<span class="flex items-center"><i class="fa-solid fa-at w-6 text-indigo-400"></i> ${user.email}</span>
+                        ${currentTab === 'deletions' ? '' : `<span class="flex items-center gap-2"><i class="fa-solid fa-at w-6 text-indigo-400"></i> ${user.email} ${user.isEmailVerified ? '<i class="fa-solid fa-circle-check text-emerald-400" title="Doğrulanmış"></i>' : '<i class="fa-solid fa-circle-xmark text-rose-400" title="Doğrulanmamış"></i>'}</span>
                         <span class="flex items-center"><i class="fa-solid fa-phone-flip w-6 text-indigo-400"></i> ${user.phone}</span>
                         <span class="flex items-center"><i class="fa-solid fa-map-pin w-6 text-indigo-400"></i> ${user.district || '?'}, ${user.city || '?'}</span>`}
                     </div>`;
@@ -1055,10 +1049,41 @@
                     // Kullanıcı sadece "Banla" butonunu görmek istedi.
                     const isAdminUser = ADMIN_EMAILS.includes((user.email || '').toLowerCase()) || user.type === 'admin';
                     
+                    // Doğrulanmamış E-posta Uyarı Butonu
+                    if (!user.isEmailVerified && !isAdminUser && currentTab !== 'deletions') {
+                        const warnBtn = document.createElement('button');
+                        warnBtn.type = 'button';
+                        warnBtn.className = 'flex-1 lg:flex-none px-4 py-2 bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 rounded-lg transition-all border font-medium cursor-pointer text-sm whitespace-nowrap';
+                        warnBtn.innerHTML = '<i class="fa-solid fa-bell mr-2"></i>Uyarı Gönder';
+                        warnBtn.addEventListener('click', async (e) => {
+                            e.preventDefault(); e.stopPropagation();
+                            try {
+                                warnBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                                await addDoc(collection(db, 'notifications'), {
+                                    userId: user.id,
+                                    title: "E-posta Doğrulaması Gerekli",
+                                    message: "Hesabınızı tam olarak kullanabilmek için lütfen e-posta adresinizi doğrulayın.",
+                                    createdAt: serverTimestamp(),
+                                    isRead: false,
+                                    type: 'warning'
+                                });
+                                showToast("Uyarı bildirimi gönderildi.");
+                                warnBtn.innerHTML = '<i class="fa-solid fa-bell mr-2"></i>Uyarı Gönder';
+                                warnBtn.disabled = false;
+                            } catch (err) {
+                                console.error(err);
+                                showToast("Uyarı gönderilemedi.");
+                                warnBtn.innerHTML = '<i class="fa-solid fa-bell mr-2"></i>Uyarı Gönder';
+                                warnBtn.disabled = false;
+                            }
+                        });
+                        actionsDiv.appendChild(warnBtn);
+                    }
+
                     if (user.deviceId && !isAdminUser) {
                         const banDevBtn = document.createElement('button');
                         banDevBtn.type = 'button';
-                        banDevBtn.className = `flex-1 lg:flex-none px-5 py-2 ${isDeviceBanned ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'} rounded-lg transition-all active:scale-95 border font-medium cursor-pointer text-sm`;
+                        banDevBtn.className = `flex-1 lg:flex-none px-5 py-2 ${isDeviceBanned ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'} rounded-lg transition-all active:scale-95 border font-medium cursor-pointer text-sm whitespace-nowrap`;
                         banDevBtn.innerHTML = `<i class="fa-solid ${isDeviceBanned ? 'fa-user-check' : 'fa-user-slash'} mr-2"></i>${isDeviceBanned ? 'Banı Kaldır' : 'Banla'}`;
                         banDevBtn.addEventListener('click', async (e) => {
                             e.preventDefault(); e.stopPropagation();
@@ -1467,17 +1492,20 @@
             finally { btn.disabled = false; btn.innerHTML = original; }
         });
 
-        // Notification Engine
-        const pushNotify = async (uid, title, msg) => {
+        // Notification Engine is now handled by Firestore triggers
+        window.pushNotify = async (uid, title, msg) => {
             try {
-                const sendPushNotification = httpsCallable(functions, 'sendPushNotification');
-                await sendPushNotification({
-                    targetUserId: uid,
+                await addDoc(collection(db, 'notifications'), {
+                    userId: uid,
                     title: title,
-                    message: msg
+                    message: msg,
+                    createdAt: serverTimestamp(),
+                    isRead: false,
+                    type: 'system'
                 });
             } catch (e) { console.error("Notification failed", e); }
         };
+        const pushNotify = window.pushNotify;
 
         document.getElementById('sendNotifBtn').addEventListener('click', async () => {
             const target = document.getElementById('notifTarget').value;
